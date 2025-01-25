@@ -5,16 +5,19 @@ import type {
 	INodeTypeDescription,
 } from 'n8n-workflow';
 import { NodeConnectionType, NodeOperationError } from 'n8n-workflow';
+import axios from 'axios';
 
-export class ExampleNode implements INodeType {
+const { convertMapUrlToPoint } = require('gmaps-expand-shorturl');
+
+export class GmapsCoordinatesExtractor implements INodeType {
 	description: INodeTypeDescription = {
-		displayName: 'Example Node',
-		name: 'exampleNode',
+		displayName: 'Gmaps - Coordinates Extractor',
+		name: 'gmapsCoordinatesExtractor',
 		group: ['transform'],
 		version: 1,
-		description: 'Basic Example Node',
+		description: 'Obtiene coordenadas a partir de URLs cortas de Google Maps',
 		defaults: {
-			name: 'Example Node',
+			name: 'Gmaps - Coordinates Extractor',
 		},
 		inputs: [NodeConnectionType.Main],
 		outputs: [NodeConnectionType.Main],
@@ -22,12 +25,12 @@ export class ExampleNode implements INodeType {
 			// Node properties which the user gets displayed and
 			// can change on the node.
 			{
-				displayName: 'My String',
-				name: 'myString',
+				displayName: 'URL de Google Maps',
+				name: 'mapUrl',
 				type: 'string',
 				default: '',
-				placeholder: 'Placeholder value',
-				description: 'The description text',
+				placeholder: 'https://maps.app.goo.gl/FCZu934XxfNg12dk7',
+				description: 'La URL acortada de Google Maps para extraer coordenadas',
 			},
 		],
 	};
@@ -38,19 +41,43 @@ export class ExampleNode implements INodeType {
 	// You can make async calls and use `await`.
 	async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
 		const items = this.getInputData();
-
-		let item: INodeExecutionData;
-		let myString: string;
+		const returnData: INodeExecutionData[] = [];
 
 		// Iterates over all input items and add the key "myString" with the
 		// value the parameter "myString" resolves to.
 		// (This could be a different value for each item in case it contains an expression)
 		for (let itemIndex = 0; itemIndex < items.length; itemIndex++) {
 			try {
-				myString = this.getNodeParameter('myString', itemIndex, '') as string;
-				item = items[itemIndex];
+				const mapUrl = this.getNodeParameter('mapUrl', itemIndex) as string;
+				const response = await axios.get(mapUrl);
+				const html = response.data as string;
+				const regex =
+					/<meta content="https:\/\/maps\.google\.com\/maps\/api\/staticmap\?center=(-?\d+\.\d+)%2C(-?\d+\.\d+)/;
+				const match = html.match(regex);
 
-				item.json.myString = myString;
+				let latitude: number;
+				let longitude: number;
+
+				if (match) {
+					// Si existe match, extraemos los grupos capturados
+					latitude = parseFloat(match[1]);
+					longitude = parseFloat(match[2]);
+				} else {
+					// 3. Si no encontramos la coordenada en el HTML,
+					//    usamos la librería gmaps-expand-shorturl como fallback
+					const pointLatLong = await convertMapUrlToPoint(mapUrl);
+
+					latitude = parseFloat(pointLatLong.latitude);
+					longitude = parseFloat(pointLatLong.longitude);
+				}
+
+				returnData.push({
+					json: {
+						latitude,
+						longitude,
+					},
+				});
+				return [returnData];
 			} catch (error) {
 				// This node should never fail but we want to showcase how
 				// to handle errors.
