@@ -25,7 +25,7 @@ export class GmapsCoordinatesExtractor implements INodeType {
 			// Node properties which the user gets displayed and
 			// can change on the node.
 			{
-				displayName: 'URL de Google Maps',
+				displayName: 'URL De Google Maps',
 				name: 'mapUrl',
 				type: 'string',
 				default: '',

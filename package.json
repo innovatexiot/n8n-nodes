@@ -1,15 +1,15 @@
 {
   "name": "n8n-nodes-innovatex",
   "version": "0.1.0",
-  "description": "",
+  "description": "private package for n8n nodes",
   "keywords": [
     "n8n-community-node-package"
   ],
   "license": "MIT",
   "homepage": "",
   "author": {
-    "name": "",
-    "email": ""
+    "name": "innovatexiot",
+    "email": "info@innovatexiot.com"
   },
   "repository": {
     "type": "git",
